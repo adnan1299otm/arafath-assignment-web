@@ -1,16 +1,12 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Screen, AppState, UserAccount, AccountStatus, TransactionType } from './types';
 import { getStoredData, saveData, createTransaction, generateAccountId } from './store';
 import { Button, Input, Card, Badge } from './components/UI';
 import {
   ShieldCheck,
-  ArrowUpCircle,
-  ArrowDownCircle,
   History,
   User,
   ChevronRight,
-  Wallet,
   Lock,
   LogOut,
   Moon,
@@ -18,33 +14,23 @@ import {
   Plus,
   Minus,
   CheckCircle2,
-  AlertTriangle,
   LayoutDashboard,
   ShieldAlert,
-  Search,
   Sparkles,
-  Menu,
-  X,
   CreditCard,
-  Bell,
   Activity,
   ExternalLink,
   Settings,
-  ArrowRight,
-  Loader2,
   AlertCircle,
   Smartphone,
   Mail,
   Fingerprint,
   Eye,
   EyeOff,
-  Trash2,
-  Snowflake,
   Play,
-  Pause,
-  Music
+  Pause
 } from 'lucide-react';
-import { getFinancialAdvice, auditSecurity } from './services/geminiService';
+import { getFinancialAdvice } from './services/geminiService';
 
 const DAILY_WITHDRAWAL_LIMIT = 5000;
 
@@ -353,8 +339,6 @@ const Sidebar: React.FC<{ current: Screen, onNav: (s: Screen) => void, user: Use
   );
 };
 
-// --- Dashboard Component ---
-
 const WebDashboard: React.FC<{ user: UserAccount, advice: string, onAction: (s: Screen) => void }> = ({ user, advice, onAction }) => (
   <div className="space-y-8 animate-in fade-in duration-500">
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
@@ -487,51 +471,45 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [advice, setAdvice] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Audio State
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = React.useRef<HTMLAudioElement>(null);
+  const [audioStarted, setAudioStarted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
+  // Audio: First click listener logic
   useEffect(() => {
-    // 1. Try immediate autoplay
-    const initAudio = async () => {
-      if (audioRef.current) {
-        try {
-          await audioRef.current.play();
-          setIsPlaying(true);
-        } catch {
-          // 2. If blocked, enable "Play on First Interaction"
-          const enableAudio = async () => {
-            if (audioRef.current && audioRef.current.paused) {
-              try {
-                await audioRef.current.play();
-                setIsPlaying(true);
-                // Cleanup listeners once successful
-                document.removeEventListener('click', enableAudio);
-                document.removeEventListener('touchstart', enableAudio);
-                document.removeEventListener('keydown', enableAudio);
-              } catch (e) {
-                console.log("Interaction play failed", e);
-              }
-            }
-          };
-
-          // Listen for any user activity
-          document.addEventListener('click', enableAudio);
-          document.addEventListener('touchstart', enableAudio);
-          document.addEventListener('keydown', enableAudio);
-        }
+    const handleFirstClick = () => {
+      if (audioRef.current && !audioStarted) {
+        audioRef.current.play()
+          .then(() => {
+            setIsPlaying(true);
+            setAudioStarted(true);
+          })
+          .catch(e => console.log("Interaction play failed", e));
       }
     };
-    initAudio();
-  }, []);
 
+    if (!audioStarted) {
+      window.addEventListener('click', handleFirstClick);
+    }
+
+    return () => {
+      window.removeEventListener('click', handleFirstClick);
+    };
+  }, [audioStarted]);
+
+  // Audio: Toggle logic
   const toggleMusic = () => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
         audioRef.current.play().catch(e => console.log("Audio play failed:", e));
+        setIsPlaying(true);
+        setAudioStarted(true);
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -859,7 +837,7 @@ export default function App() {
           </main>
         </div>
       )}
-      <audio ref={audioRef} src="/Background.mp3" loop autoPlay />
+      <audio ref={audioRef} src="/Background.mp3" loop />
     </div>
   );
 }
