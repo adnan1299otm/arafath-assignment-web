@@ -1,0 +1,7 @@
+{
+  "name": "Arafath Assignment Web | Premier Digital Banking",
+  "description": "Enterprise-grade digital banking web platform featuring real-time asset management, AI-driven financial intelligence, and multi-layer encryption security.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
